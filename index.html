@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日清单 Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f4f7f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .todo-container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 480px; /* Increased width for new elements */
+            padding: 24px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .history-controls {
+            display: flex;
+            align-items: center;
+        }
+
+        #date-picker {
+            margin-left: 8px;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+        }
+
+        .add-todo {
+            display: flex;
+            margin-bottom: 24px;
+        }
+
+        #new-todo-input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px 0 0 6px;
+            outline: none;
+        }
+
+        .add-todo button {
+            padding: 10px 16px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 0 6px 6px 0;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .add-todo button:hover {
+            background-color: #0056b3;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 24px;
+        }
+
+        #todo-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .todo-item:last-child {
+            border-bottom: none;
+        }
+
+        .todo-item .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #adb5bd;
+            border-radius: 50%;
+            margin-right: 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .todo-item .checkbox .tick {
+            display: none;
+            color: #ffffff;
+            font-weight: bold;
+        }
+
+        .todo-item .text {
+            flex-grow: 1;
+            color: #343a40;
+            transition: all 0.3s ease;
+        }
+
+        .todo-item .delete-btn {
+            display: none; /* Hidden by default */
+            margin-left: 16px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: #dc3545;
+        }
+
+        .todo-item:hover .delete-btn {
+            display: block; /* Show on hover */
+        }
+
+        /* Completed State */
+        .todo-item.completed .checkbox {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+
+        .todo-item.completed .checkbox .tick {
+            display: block;
+        }
+
+        .todo-item.completed .text {
+            text-decoration: line-through;
+            color: #888888;
+        }
+
+        .todo-item.completed {
+            opacity: 0.6;
+        }
+
+        /* 创建清单界面样式 */
+        .create-view {
+            text-align: center;
+            padding: 40px 20px;
+        }
+
+        .create-view h1 {
+            margin-bottom: 16px;
+            color: #333;
+        }
+
+        .welcome-text {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 32px;
+        }
+
+        .create-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 32px;
+            font-size: 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .create-btn:hover {
+            background-color: #0056b3;
+        }
+
+        /* 隐藏/显示视图 */
+        .todo-view {
+            display: none;
+        }
+
+        .todo-view.active {
+            display: block;
+        }
+
+        .create-view.hidden {
+            display: none;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="todo-container">
+        <!-- 创建清单界面 -->
+        <div id="create-list-view" class="create-view">
+            <h1>每日清单</h1>
+            <p class="welcome-text">开始您的高效一天</p>
+            <button id="create-list-btn" class="create-btn">创建清单</button>
+        </div>
+
+        <!-- 清单管理界面 -->
+        <div id="todo-view" class="todo-view" style="display: none;">
+            <div class="header">
+                <h1>每日清单</h1>
+                <div class="history-controls">
+                    <label for="date-picker">查看历史记录:</label>
+                    <select id="date-picker"></select>
+                </div>
+            </div>
+
+            <div class="add-todo">
+                <input type="text" id="new-todo-input" placeholder="添加新的待办事项...">
+                <button id="add-todo-btn">添加</button>
+            </div>
+
+            <ul id="todo-list"></ul>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let allTasks = {};
+            let currentDate = new Date().toISOString().split('T')[0]; // 今天的日期
+
+            // 获取DOM元素
+            const createListView = document.getElementById('create-list-view');
+            const todoView = document.getElementById('todo-view');
+            const createListBtn = document.getElementById('create-list-btn');
+            const todoList = document.getElementById('todo-list');
+            const datePicker = document.getElementById('date-picker');
+            const newTodoInput = document.getElementById('new-todo-input');
+            const addTodoBtn = document.getElementById('add-todo-btn');
+
+            /**
+             * 检查今天是否已有清单
+             */
+            function checkTodayList() {
+                if (allTasks[currentDate] && allTasks[currentDate].length > 0) {
+                    // 今天已有清单，直接显示清单界面
+                    showTodoView();
+                    loadTasksForDate(currentDate);
+                } else {
+                    // 今天没有清单，显示创建界面
+                    showCreateView();
+                }
+            }
+
+            /**
+             * 显示创建清单界面
+             */
+            function showCreateView() {
+                createListView.style.display = 'block';
+                todoView.style.display = 'none';
+            }
+
+            /**
+             * 显示清单管理界面
+             */
+            function showTodoView() {
+                createListView.style.display = 'none';
+                todoView.style.display = 'block';
+            }
+
+            /**
+             * 创建清单
+             */
+            function createList() {
+                // 为今天创建空清单
+                if (!allTasks[currentDate]) {
+                    allTasks[currentDate] = [];
+                }
+                showTodoView();
+                populateDatePicker();
+                datePicker.value = currentDate;
+                loadTasksForDate(currentDate);
+                newTodoInput.focus(); // 聚焦到输入框
+            }
+
+            /**
+             * 排序任务（未完成在上，已完成在下）
+             */
+            function sortTasks() {
+                const items = Array.from(todoList.children);
+                const completedItems = items.filter(item => item.classList.contains('completed'));
+                const incompleteItems = items.filter(item => !item.classList.contains('completed'));
+                
+                // 清空列表
+                todoList.innerHTML = '';
+                
+                // 先添加未完成的
+                incompleteItems.forEach(item => todoList.appendChild(item));
+                // 再添加已完成的
+                completedItems.forEach(item => todoList.appendChild(item));
+            }
+
+            /**
+             * 加载指定日期的任务
+             */
+            function loadTasksForDate(date) {
+                todoList.innerHTML = '';
+                const tasks = allTasks[date] || [];
+                
+                tasks.forEach(task => {
+                    const li = document.createElement('li');
+                    li.className = `todo-item ${task.completed ? 'completed' : ''}`;
+                    li.dataset.id = task.id;
+                    li.dataset.date = date;
+                    li.innerHTML = `
+                        <div class="checkbox"><span class="tick">✓</span></div>
+                        <span class="text">${task.text}</span>
+                        <button class="delete-btn">🗑️</button>
+                    `;
+                    todoList.appendChild(li);
+                });
+                
+                sortTasks();
+            }
+
+            /**
+             * 填充日期选择器
+             */
+            function populateDatePicker() {
+                datePicker.innerHTML = '';
+                
+                // 按日期排序
+                const sortedDates = Object.keys(allTasks).sort().reverse();
+                
+                sortedDates.forEach(date => {
+                    const option = document.createElement('option');
+                    option.value = date;
+                    option.textContent = date;
+                    datePicker.appendChild(option);
+                });
+                
+                // 设置当前日期为默认选中
+                if (sortedDates.includes(currentDate)) {
+                    datePicker.value = currentDate;
+                }
+            }
+
+            /**
+             * 从本地存储加载数据
+             */
+            function fetchData() {
+                try {
+                    const data = localStorage.getItem('todoData');
+                    if (data) {
+                        allTasks = JSON.parse(data);
+                    } else {
+                        allTasks = {};
+                    }
+                } catch (error) {
+                    console.error('加载数据失败:', error);
+                    allTasks = {};
+                }
+                
+                populateDatePicker();
+                checkTodayList();
+            }
+
+            /**
+             * 保存数据到本地存储
+             */
+            function saveData() {
+                try {
+                    localStorage.setItem('todoData', JSON.stringify(allTasks));
+                } catch (error) {
+                    console.error('保存数据失败:', error);
+                }
+            }
+
+            /**
+             * 添加新任务
+             */
+            function addTodo() {
+                const text = newTodoInput.value.trim();
+                if (text === '') {
+                    alert('请输入任务内容');
+                    return;
+                }
+                
+                const selectedDate = datePicker.value || currentDate;
+                
+                if (!allTasks[selectedDate]) {
+                    allTasks[selectedDate] = [];
+                }
+                
+                const newTask = {
+                    id: Date.now(),
+                    text: text,
+                    completed: false,
+                    created_at: new Date().toISOString()
+                };
+                
+                allTasks[selectedDate].unshift(newTask);
+                loadTasksForDate(selectedDate);
+                newTodoInput.value = '';
+                
+                // 更新日期选择器
+                populateDatePicker();
+                datePicker.value = selectedDate;
+                
+                // 保存数据
+                saveData();
+            }
+
+            // 事件监听器
+            createListBtn.addEventListener('click', createList);
+            addTodoBtn.addEventListener('click', addTodo);
+            
+            newTodoInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    addTodo();
+                }
+            });
+            
+            datePicker.addEventListener('change', (e) => {
+                loadTasksForDate(e.target.value);
+            });
+
+            /**
+             * 任务列表点击事件（删除和完成切换）
+             */
+            todoList.addEventListener('click', function(event) {
+                const target = event.target;
+                const todoItem = target.closest('.todo-item');
+                if (!todoItem) return;
+
+                const taskId = parseInt(todoItem.dataset.id);
+                const date = todoItem.dataset.date;
+
+                if (target.closest('.delete-btn')) {
+                    // 删除任务
+                    if (confirm('您确定要永久删除这条任务吗？')) {
+                        const taskIndex = allTasks[date].findIndex(t => t.id === taskId);
+                        if (taskIndex > -1) {
+                            allTasks[date].splice(taskIndex, 1);
+                            loadTasksForDate(date);
+                            saveData();
+                        }
+                    }
+                } else if (target.closest('.checkbox')) {
+                    // 切换完成状态
+                    const task = allTasks[date].find(t => t.id === taskId);
+                    if (task) {
+                        task.completed = !task.completed;
+                        todoItem.classList.toggle('completed');
+                        sortTasks();
+                        saveData();
+                    }
+                }
+            });
+
+            // 初始化
+            fetchData();
+        });
+    </script>
+
+</body>
+</html>
