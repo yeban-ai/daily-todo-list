@@ -1,0 +1,33 @@
+{
+    "tasks": [
+        {
+            "date": "2024-01-17",
+            "items": [
+                {
+                    "id": 1,
+                    "text": "完成项目报告",
+                    "completed": false,
+                    "created_at": "2024-01-17T09:00:00"
+                },
+                {
+                    "id": 2,
+                    "text": "回复三封重要邮件",
+                    "completed": false,
+                    "created_at": "2024-01-17T09:00:00"
+                },
+                {
+                    "id": 3,
+                    "text": "安排周五的团队会议",
+                    "completed": false,
+                    "created_at": "2024-01-17T09:00:00"
+                },
+                {
+                    "id": 4,
+                    "text": "健身一小时",
+                    "completed": false,
+                    "created_at": "2024-01-17T09:00:00"
+                }
+            ]
+        }
+    ]
+}
